@@ -19,8 +19,38 @@ import {request, PERMISSIONS} from 'react-native-permissions';
 import Markers from '../Components/Markers';
 // import Carousel from 'react-native-snap-carousel';
 
+const poi = [
+  {title: 'Chaptal1', latitude: 48.876476, longitude: 2.374477},
+  {title: 'Chaptal2', latitude: 48.838693, longitude: 2.360308},
+  {title: 'Chaptal3', latitude: 48.846417, longitude: 2.297068},
+  {title: 'Chaptal4', latitude: 48.792327, longitude: 2.151392},
+];
+
 const Map = () => {
   const [initialPosition, setInitialPosition] = useState<Region>();
+  const [data, setData] = useState(poi);
+
+  const displayCard = (marker: {
+    title: string;
+    latitude: number;
+    longitude: number;
+  }) => {
+    return (
+      <View
+        style={{
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: 200,
+          width: 200,
+          backgroundColor: 'white',
+          position: 'absolute',
+          bottom: 0,
+        }}>
+        <Text>{marker.title}</Text>
+      </View>
+    );
+    console.log(marker.title);
+  };
 
   const requestLocationPermission = () => {
     if (Platform.OS === 'ios') {
@@ -62,7 +92,6 @@ const Map = () => {
 
   return (
     <View style={styles.container}>
-      {/* <Text>Map</Text> */}
       <MapView
         style={styles.map}
         showsUserLocation={true}
@@ -72,15 +101,31 @@ const Map = () => {
           latitudeDelta: 0.3,
           longitudeDelta: 0.1,
         }}>
-        {/* <Polygon
-          coordinates={[
-            {latitude: 48.79232732156863, longitude: 2.151392362336927},
-            {latitude: 48.6, longitude: 2.2},
-            {latitude: 48.5, longitude: 2.3},
-          ]}
-        /> */}
-        <Markers />
+        {/* <Markers /> */}
+        {data.map(marker => {
+          return (
+            <Marker
+              coordinate={{
+                latitude: marker.latitude,
+                longitude: marker.longitude,
+              }}
+              title={marker.title}
+              onPress={() => displayCard(marker)}>
+              <Callout>
+                <Text>
+                  <Image
+                    source={require('../src/images/nerd.png')}
+                    resizeMode="cover"
+                    style={{height: 100, width: 100}}
+                  />
+                </Text>
+                <Text>{marker.title}</Text>
+              </Callout>
+            </Marker>
+          );
+        })}
       </MapView>
+      {/* <Text style={styles.test}>This text</Text> */}
     </View>
   );
 };
@@ -93,5 +138,14 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
+  },
+  test: {
+    // ...StyleSheet.absoluteFillObject,
+    // flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 200,
+    width: 200,
+    backgroundColor: 'white',
   },
 });
