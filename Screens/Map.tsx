@@ -5,51 +5,25 @@ import {
   View,
   Platform,
   PermissionsAndroid,
+  ActivityIndicator,
+  Linking,
 } from 'react-native';
 import React, {useEffect, useState} from 'react';
-import MapView, {
-  Marker,
-  Callout,
-  Polygon,
-  LatLng,
-  Region,
-} from 'react-native-maps';
+import MapView, {Marker, Callout, Region} from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
 import {request, PERMISSIONS} from 'react-native-permissions';
 import Markers from '../Components/Markers';
-// import Carousel from 'react-native-snap-carousel';
-
-const poi = [
-  {title: 'Chaptal1', latitude: 48.876476, longitude: 2.374477},
-  {title: 'Chaptal2', latitude: 48.838693, longitude: 2.360308},
-  {title: 'Chaptal3', latitude: 48.846417, longitude: 2.297068},
-  {title: 'Chaptal4', latitude: 48.792327, longitude: 2.151392},
-];
+import useApiData from '../api/useApiData';
 
 const Map = () => {
   const [initialPosition, setInitialPosition] = useState<Region>();
-  const [data, setData] = useState(poi);
+  const {data, isLoaded} = useApiData(
+    'https://data.education.gouv.fr/api/v2/catalog/datasets/fr-en-annuaire-education/records?where=code_postal%3D%2275009%22&limit=100&offset=0',
+  );
+  const [currentSchool, setCurrentSchool] = useState<any>();
 
-  const displayCard = (marker: {
-    title: string;
-    latitude: number;
-    longitude: number;
-  }) => {
-    return (
-      <View
-        style={{
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: 200,
-          width: 200,
-          backgroundColor: 'white',
-          position: 'absolute',
-          bottom: 0,
-        }}>
-        <Text>{marker.title}</Text>
-      </View>
-    );
-    console.log(marker.title);
+  const onMarkerPressed = (marker: any) => {
+    setCurrentSchool(marker);
   };
 
   const requestLocationPermission = () => {
@@ -90,42 +64,61 @@ const Map = () => {
     requestLocationPermission();
   }, []);
 
+  if (!isLoaded) {
+    return (
+      <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <MapView
         style={styles.map}
         showsUserLocation={true}
-        initialRegion={{
-          latitude: 48.861436,
-          longitude: 2.340236,
-          latitudeDelta: 0.3,
-          longitudeDelta: 0.1,
-        }}>
-        {/* <Markers /> */}
-        {data.map(marker => {
+        onPress={() => setCurrentSchool(undefined)}
+        initialRegion={initialPosition}>
+        {data.map((marker, index) => {
           return (
             <Marker
               coordinate={{
-                latitude: marker.latitude,
-                longitude: marker.longitude,
+                latitude: marker.record.fields.latitude,
+                longitude: marker.record.fields.longitude,
               }}
-              title={marker.title}
-              onPress={() => displayCard(marker)}>
-              <Callout>
-                <Text>
-                  <Image
-                    source={require('../src/images/nerd.png')}
-                    resizeMode="cover"
-                    style={{height: 100, width: 100}}
-                  />
-                </Text>
-                <Text>{marker.title}</Text>
-              </Callout>
-            </Marker>
+              key={index}
+              onPress={() => onMarkerPressed(marker)}></Marker>
           );
         })}
       </MapView>
-      {/* <Text style={styles.test}>This text</Text> */}
+      {currentSchool && (
+        <View style={styles.encart}>
+          <Text style={styles.title}>
+            {currentSchool.record.fields.nom_etablissement}
+          </Text>
+          <View style={styles.separer}></View>
+          <View style={styles.body}>
+            <Text>
+              {currentSchool.record.fields.type_etablissement + ' '}
+              {currentSchool.record.fields.statut_public_prive}
+            </Text>
+            <Text>Adresse: {currentSchool.record.fields.adresse_1}</Text>
+            <Text>Téléphone: {currentSchool.record.fields.telephone}</Text>
+            {currentSchool.record.fields.web && (
+              <Text>
+                Site web:{' '}
+                <Text
+                  style={{color: 'blue', textDecorationLine: 'underline'}}
+                  onPress={() =>
+                    Linking.openURL(currentSchool.record.fields.web)
+                  }>
+                  {currentSchool.record.fields.web}
+                </Text>
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -135,17 +128,34 @@ export default Map;
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
   },
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-  test: {
-    // ...StyleSheet.absoluteFillObject,
-    // flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 200,
-    width: 200,
+  encart: {
+    position: 'absolute',
+    bottom: 10,
     backgroundColor: 'white',
+    borderRadius: 10,
+    height: 200,
+    width: '90%',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    padding: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  body: {
+    width: '90%',
+    textAlign: 'left',
+  },
+  separer: {
+    borderWidth: 0.2,
+    width: '70%',
+    height: 0.1,
   },
 });
